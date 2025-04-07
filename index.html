@@ -1,3 +1,5 @@
+<!-- HTML completo com edição de nome e data de nascimento -->
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -185,11 +187,16 @@
     <button onclick="descricaoFlutuante.style.display='none'">Fechar</button>
   </div>
 
-  <!-- Modal para editar descrição -->
+  <!-- Modal para editar nome, data e descrição -->
   <div id="modalEditar" class="modal">
     <div class="modal-content">
-      <h3>Editar Descrição</h3>
-      <textarea id="editarDescricaoTexto" rows="4" style="width: 100%; margin-bottom: 15px;"></textarea>
+      <h3>Editar Paciente</h3>
+      <label>Nome:</label>
+      <input type="text" id="editarNome" />
+      <label>Data de Nascimento:</label>
+      <input type="text" id="editarData" maxlength="10" />
+      <label>Descrição:</label>
+      <textarea id="editarDescricaoTexto" rows="4" style="margin-bottom: 15px;"></textarea>
       <div class="modal-buttons">
         <button class="confirmar" id="btnSalvarEdicao">Salvar</button>
         <button class="cancelar" onclick="fecharModalEditar()">Cancelar</button>
@@ -256,7 +263,6 @@
       const data = document.getElementById("dataNascimento").value;
       const desc = document.getElementById("descricao").value;
       dados.pacientes.push({ nome, dataNascimento: data, descricao: desc });
-
       dados.pacientes.sort((a, b) => a.nome.localeCompare(b.nome));
       await salvarDados();
       e.target.reset();
@@ -283,7 +289,10 @@
 
     function abrirModalEditar(index) {
       indexEdicaoAtual = index;
-      document.getElementById("editarDescricaoTexto").value = dados.pacientes[index].descricao;
+      const paciente = dados.pacientes[index];
+      document.getElementById("editarNome").value = paciente.nome;
+      document.getElementById("editarData").value = paciente.dataNascimento;
+      document.getElementById("editarDescricaoTexto").value = paciente.descricao;
       document.getElementById("modalEditar").style.display = "block";
     }
 
@@ -294,8 +303,10 @@
 
     document.getElementById("btnSalvarEdicao").onclick = async () => {
       if (indexEdicaoAtual !== null) {
-        const novaDescricao = document.getElementById("editarDescricaoTexto").value;
-        dados.pacientes[indexEdicaoAtual].descricao = novaDescricao;
+        dados.pacientes[indexEdicaoAtual].nome = document.getElementById("editarNome").value;
+        dados.pacientes[indexEdicaoAtual].dataNascimento = document.getElementById("editarData").value;
+        dados.pacientes[indexEdicaoAtual].descricao = document.getElementById("editarDescricaoTexto").value;
+        dados.pacientes.sort((a, b) => a.nome.localeCompare(b.nome));
         await salvarDados();
         carregarTabela();
         fecharModalEditar();
