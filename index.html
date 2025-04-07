@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title> Kauan Feitosa - Terapia Integrativa</title>
+  <title>Kauan Feitosa - Terapia Integrativa</title>
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
   <style>
     body {
@@ -53,15 +53,16 @@
     button:hover {
       background-color: #24593f;
     }
-    .btn-excluir {
+    .btn-excluir, .btn-editar {
       background-color: #f57c00;
       color: white;
       border: none;
       padding: 6px 12px;
       border-radius: 6px;
       cursor: pointer;
+      margin-right: 5px;
     }
-    .btn-excluir:hover {
+    .btn-excluir:hover, .btn-editar:hover {
       background-color: #e65100;
     }
     table {
@@ -69,8 +70,7 @@
       width: 100%;
       border-collapse: collapse;
     }
-    th,
-    td {
+    th, td {
       padding: 10px;
       border-bottom: 1px solid #ccc;
       text-align: left;
@@ -185,12 +185,25 @@
     <button onclick="descricaoFlutuante.style.display='none'">Fechar</button>
   </div>
 
+  <!-- Modal para editar descrição -->
+  <div id="modalEditar" class="modal">
+    <div class="modal-content">
+      <h3>Editar Descrição</h3>
+      <textarea id="editarDescricaoTexto" rows="4" style="width: 100%; margin-bottom: 15px;"></textarea>
+      <div class="modal-buttons">
+        <button class="confirmar" id="btnSalvarEdicao">Salvar</button>
+        <button class="cancelar" onclick="fecharModalEditar()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const BIN_ID = "67f40c588960c979a5800596";
     const API_KEY = "$2a$10$.Kqx5UYDNdvniDVaS7JDTOWVBgcpc.e9GN/eAh8d7oUK2ISL2iMqC";
     const BASE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
     let dados = { pacientes: [] };
+    let indexEdicaoAtual = null;
 
     async function carregarDados() {
       const res = await fetch(BASE_URL + "/latest", { headers: { "X-Master-Key": API_KEY } });
@@ -224,13 +237,17 @@
         tr.innerHTML = `
           <td class="nome" data-index="${indexOriginal}">${p.nome}</td>
           <td>${p.dataNascimento}</td>
-          <td><button class="btn-excluir" data-index="${indexOriginal}">Excluir</button></td>
+          <td>
+            <button class="btn-editar" data-index="${indexOriginal}">Editar</button>
+            <button class="btn-excluir" data-index="${indexOriginal}">Excluir</button>
+          </td>
         `;
         tabela.appendChild(tr);
       });
 
       document.querySelectorAll(".nome").forEach((el) => el.onclick = () => mostrarDescricao(el.dataset.index));
       document.querySelectorAll(".btn-excluir").forEach((btn) => btn.onclick = () => confirmarExclusao(btn.dataset.index));
+      document.querySelectorAll(".btn-editar").forEach((btn) => btn.onclick = () => abrirModalEditar(btn.dataset.index));
     }
 
     document.getElementById("formCadastro").onsubmit = async (e) => {
@@ -240,9 +257,7 @@
       const desc = document.getElementById("descricao").value;
       dados.pacientes.push({ nome, dataNascimento: data, descricao: desc });
 
-      // Ordenar após adicionar
       dados.pacientes.sort((a, b) => a.nome.localeCompare(b.nome));
-
       await salvarDados();
       e.target.reset();
       document.getElementById("idade").textContent = "";
@@ -266,6 +281,27 @@
       modal.querySelector(".cancelar").onclick = () => modal.style.display = "none";
     }
 
+    function abrirModalEditar(index) {
+      indexEdicaoAtual = index;
+      document.getElementById("editarDescricaoTexto").value = dados.pacientes[index].descricao;
+      document.getElementById("modalEditar").style.display = "block";
+    }
+
+    function fecharModalEditar() {
+      document.getElementById("modalEditar").style.display = "none";
+      indexEdicaoAtual = null;
+    }
+
+    document.getElementById("btnSalvarEdicao").onclick = async () => {
+      if (indexEdicaoAtual !== null) {
+        const novaDescricao = document.getElementById("editarDescricaoTexto").value;
+        dados.pacientes[indexEdicaoAtual].descricao = novaDescricao;
+        await salvarDados();
+        carregarTabela();
+        fecharModalEditar();
+      }
+    };
+
     document.getElementById("busca").oninput = (e) => carregarTabela(e.target.value);
 
     document.getElementById("dataNascimento").addEventListener("input", function () {
@@ -286,10 +322,7 @@
         const nasc = new Date(ano, mes - 1, dia);
         const hoje = new Date();
         let idade = hoje.getFullYear() - nasc.getFullYear();
-        if (
-          hoje.getMonth() < nasc.getMonth() ||
-          (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
-        )
+        if (hoje.getMonth() < nasc.getMonth() || (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate()))
           idade--;
         return idade;
       }
