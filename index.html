@@ -212,17 +212,22 @@
     function carregarTabela(filtro = "") {
       const tabela = document.querySelector("#tabelaCadastros tbody");
       tabela.innerHTML = "";
-      dados.pacientes
-        .filter((p) => p.nome.toLowerCase().includes(filtro.toLowerCase()))
-        .forEach((p, i) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td class="nome" data-index="${i}">${p.nome}</td>
-            <td>${p.dataNascimento}</td>
-            <td><button class="btn-excluir" data-index="${i}">Excluir</button></td>
-          `;
-          tabela.appendChild(tr);
-        });
+
+      const pacientesOrdenados = dados.pacientes
+        .slice()
+        .sort((a, b) => a.nome.localeCompare(b.nome))
+        .filter((p) => p.nome.toLowerCase().includes(filtro.toLowerCase()));
+
+      pacientesOrdenados.forEach((p, i) => {
+        const indexOriginal = dados.pacientes.findIndex(obj => obj === p);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="nome" data-index="${indexOriginal}">${p.nome}</td>
+          <td>${p.dataNascimento}</td>
+          <td><button class="btn-excluir" data-index="${indexOriginal}">Excluir</button></td>
+        `;
+        tabela.appendChild(tr);
+      });
 
       document.querySelectorAll(".nome").forEach((el) => el.onclick = () => mostrarDescricao(el.dataset.index));
       document.querySelectorAll(".btn-excluir").forEach((btn) => btn.onclick = () => confirmarExclusao(btn.dataset.index));
@@ -234,6 +239,10 @@
       const data = document.getElementById("dataNascimento").value;
       const desc = document.getElementById("descricao").value;
       dados.pacientes.push({ nome, dataNascimento: data, descricao: desc });
+
+      // Ordenar após adicionar
+      dados.pacientes.sort((a, b) => a.nome.localeCompare(b.nome));
+
       await salvarDados();
       e.target.reset();
       document.getElementById("idade").textContent = "";
