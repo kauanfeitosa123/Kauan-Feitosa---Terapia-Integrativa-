@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title> Kauan Feitosa - Terapia Integrativa</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <style>
+    body {
+      background: #f5fdf6;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    main {
+      max-width: 720px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      color: #2f6e4f;
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+      color: #444;
+    }
+    input[type='text'],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      width: 100%;
+      background-color: #2f6e4f;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #24593f;
+    }
+    .btn-excluir {
+      background-color: #f57c00;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-excluir:hover {
+      background-color: #e65100;
+    }
+    table {
+      margin-top: 30px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #ccc;
+      text-align: left;
+    }
+    th {
+      background-color: #2f6e4f;
+      color: white;
+    }
+    td.nome:hover {
+      cursor: pointer;
+      color: #2e7d32;
+      text-decoration: underline;
+    }
+    .search-bar {
+      margin-top: 30px;
+    }
+    .idade-info {
+      font-style: italic;
+      color: #555;
+      margin-left: 10px;
+    }
+    .modal,
+    #descricaoFlutuante {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+    .modal-content,
+    #descricaoFlutuante {
+      background-color: #fff;
+      margin: 15% auto;
+      padding: 20px;
+      width: 90%;
+      max-width: 400px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+    .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+    }
+    .modal-buttons button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .confirmar {
+      background-color: #f57c00;
+      color: white;
+    }
+    .cancelar {
+      background-color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h2>Kauan Feitosa - Terapia Integrativa</h2>
+    <form id="formCadastro">
+      <label>Nome Completo:</label>
+      <input type="text" id="nome" required />
+      <label>Data de Nascimento:</label>
+      <div style="display: flex; align-items: center; gap: 15px;">
+        <input type="text" id="dataNascimento" placeholder="dd/mm/aaaa" required maxlength="10" />
+        <span id="idade" class="idade-info"></span>
+      </div>
+      <label>Descrição dos sintomas e qual tratamento foi utilizado:</label>
+      <textarea id="descricao" rows="4" required></textarea>
+      <button type="submit">Cadastrar Paciente</button>
+    </form>
+
+    <div class="search-bar">
+      <label>Buscar Paciente:</label>
+      <input type="text" id="busca" placeholder="Digite o nome para buscar..." />
+    </div>
+
+    <h2>Pacientes Cadastrados</h2>
+    <table id="tabelaCadastros">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Data de Nascimento</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+
+  <div id="modalConfirmacao" class="modal">
+    <div class="modal-content">
+      <h3>Deseja excluir este paciente?</h3>
+      <div class="modal-buttons">
+        <button class="confirmar">Sim, excluir</button>
+        <button class="cancelar">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="descricaoFlutuante">
+    <h3>Descrição do Paciente</h3>
+    <p id="conteudoDescricao"></p>
+    <button onclick="descricaoFlutuante.style.display='none'">Fechar</button>
+  </div>
+
+  <script>
+    const BIN_ID = "67f40c588960c979a5800596";
+    const API_KEY = "$2a$10$.Kqx5UYDNdvniDVaS7JDTOWVBgcpc.e9GN/eAh8d7oUK2ISL2iMqC";
+    const BASE_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+    let dados = { pacientes: [] };
+
+    async function carregarDados() {
+      const res = await fetch(BASE_URL + "/latest", { headers: { "X-Master-Key": API_KEY } });
+      const json = await res.json();
+      dados = json.record;
+    }
+
+    async function salvarDados() {
+      await fetch(BASE_URL, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Master-Key": API_KEY,
+        },
+        body: JSON.stringify(dados),
+      });
+    }
+
+    function carregarTabela(filtro = "") {
+      const tabela = document.querySelector("#tabelaCadastros tbody");
+      tabela.innerHTML = "";
+      dados.pacientes
+        .filter((p) => p.nome.toLowerCase().includes(filtro.toLowerCase()))
+        .forEach((p, i) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td class="nome" data-index="${i}">${p.nome}</td>
+            <td>${p.dataNascimento}</td>
+            <td><button class="btn-excluir" data-index="${i}">Excluir</button></td>
+          `;
+          tabela.appendChild(tr);
+        });
+
+      document.querySelectorAll(".nome").forEach((el) => el.onclick = () => mostrarDescricao(el.dataset.index));
+      document.querySelectorAll(".btn-excluir").forEach((btn) => btn.onclick = () => confirmarExclusao(btn.dataset.index));
+    }
+
+    document.getElementById("formCadastro").onsubmit = async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("nome").value;
+      const data = document.getElementById("dataNascimento").value;
+      const desc = document.getElementById("descricao").value;
+      dados.pacientes.push({ nome, dataNascimento: data, descricao: desc });
+      await salvarDados();
+      e.target.reset();
+      document.getElementById("idade").textContent = "";
+      carregarTabela();
+    };
+
+    function mostrarDescricao(index) {
+      document.getElementById("conteudoDescricao").textContent = dados.pacientes[index].descricao;
+      document.getElementById("descricaoFlutuante").style.display = "block";
+    }
+
+    function confirmarExclusao(index) {
+      const modal = document.getElementById("modalConfirmacao");
+      modal.style.display = "block";
+      modal.querySelector(".confirmar").onclick = async () => {
+        dados.pacientes.splice(index, 1);
+        await salvarDados();
+        modal.style.display = "none";
+        carregarTabela();
+      };
+      modal.querySelector(".cancelar").onclick = () => modal.style.display = "none";
+    }
+
+    document.getElementById("busca").oninput = (e) => carregarTabela(e.target.value);
+
+    document.getElementById("dataNascimento").addEventListener("input", function () {
+      let valor = this.value.replace(/\D/g, "");
+      if (valor.length > 2 && valor.length <= 4)
+        valor = valor.slice(0, 2) + "/" + valor.slice(2);
+      else if (valor.length > 4)
+        valor = valor.slice(0, 2) + "/" + valor.slice(2, 4) + "/" + valor.slice(4, 8);
+      this.value = valor;
+      const idade = calcularIdade(this.value);
+      document.getElementById("idade").textContent = idade ? `Idade: ${idade} anos` : "";
+    });
+
+    function calcularIdade(dataStr) {
+      const partes = dataStr.split("/");
+      if (partes.length === 3) {
+        const [dia, mes, ano] = partes.map((p) => parseInt(p));
+        const nasc = new Date(ano, mes - 1, dia);
+        const hoje = new Date();
+        let idade = hoje.getFullYear() - nasc.getFullYear();
+        if (
+          hoje.getMonth() < nasc.getMonth() ||
+          (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
+        )
+          idade--;
+        return idade;
+      }
+      return null;
+    }
+
+    window.onload = async () => {
+      await carregarDados();
+      carregarTabela();
+    };
+  </script>
+</body>
+</html>
